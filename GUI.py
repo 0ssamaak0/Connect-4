@@ -1,9 +1,9 @@
 import sys
 import qdarktheme
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QGridLayout, QWidget, QLabel, QSpinBox, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QGridLayout, QWidget, QLabel, QSpinBox, QMessageBox, QComboBox
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QPen
 from PyQt6.QtCore import Qt
-import random
+import random, time
 
 class Player:
     def __init__(self, name, color):
@@ -19,6 +19,7 @@ class RandomComputer(Player):
         super().__init__(name, color)
 
     def play(self, board):
+        time.sleep(0.5)
         available_cols = [col for col in range(len(board[0])) if board[0][col] == 0]
         if available_cols:
             return random.choice(available_cols)
@@ -33,7 +34,7 @@ class MiniMaxComputer(Player):
         pass
 
 class Connect4(QMainWindow):
-    def __init__(self, num_rows=6, num_cols=7):
+    def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer"):
         super().__init__()
         self.setWindowTitle("Connect 4")
         self.setGeometry(100, 100, 700, 600)
@@ -44,11 +45,18 @@ class Connect4(QMainWindow):
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
-        self.players = [Human("Player 1", "red"), RandomComputer("Computer", "green")]
+        self.players_dict = {"Human": Human, "RandomComputer": RandomComputer, "MiniMaxComputer": MiniMaxComputer}
+        self.players = [self.players_dict[player1_type]("Player 1", "red"), self.players_dict[player2_type]("Player 2", "green")]
         self.current_player = self.players[0]
         self.create_board()
         self.create_turn_label()
+
+        # render the window
+        self.show()
         
+        print("START")
+        self.play()
+
     def create_board(self):
         # add an empty row at the top
         self.grid_layout.addWidget(QLabel(), 0, 0, 1, self.num_cols)
@@ -80,7 +88,11 @@ class Connect4(QMainWindow):
             self.grid_layout.itemAtPosition(self.num_rows+2, 0).widget().setParent(None)
         self.grid_layout.addWidget(self.turn_label, self.num_rows+2, 0, 1, self.num_cols)
         
-    def play(self, col):
+    def play(self, col = None):
+        if not isinstance(self.current_player, Human):
+            col = self.current_player.play(self.board)
+        if col is None:
+            return
         row = self.num_rows - 1
         while row >= 0 and self.board[row][col] != 0:
             row -= 1
@@ -89,6 +101,7 @@ class Connect4(QMainWindow):
         self.board[row][col] = self.current_player
         label = self.grid_layout.itemAtPosition(row+2, col).widget()
         label.setStyleSheet(f"background-color: {self.current_player.color}; border: 1px solid black; border-radius: 20%;")
+        QApplication.processEvents()
         if self.check_win(row, col):
             self.show_result_dialog(f"{self.current_player.name} won!")
         elif self.check_tie():
@@ -96,10 +109,10 @@ class Connect4(QMainWindow):
         else:
             self.current_player = self.players[1] if self.current_player == self.players[0] else self.players[0]
             self.create_turn_label()
-            if isinstance(self.current_player, RandomComputer):
-                col = self.current_player.play(self.board)
-                if col is not None:
-                    self.play(col)
+        
+        if not isinstance(self.current_player, Human):
+            self.play()
+        
             
     def check_win(self, row, col):
         player = self.board[row][col]
@@ -193,23 +206,42 @@ class Connect4Setup(QWidget):
         self.num_cols_spinbox.setMinimum(4)
         self.num_cols_spinbox.setMaximum(100)
         self.num_cols_spinbox.setValue(7)
-        self.grid_layout.addWidget(QLabel("Number of columns:"), 1, 0)
-        self.grid_layout.addWidget(self.num_cols_spinbox, 1, 1)
+        self.grid_layout.addWidget(QLabel("Number of columns:"), 0, 2)
+        self.grid_layout.addWidget(self.num_cols_spinbox, 0, 3)
+
+        self.player1_dropdown = QComboBox()
+        self.player1_dropdown.addItem("Human")
+        # self.player1_dropdown.addItem("RandomComputer")
+        # self.player1_dropdown.addItem("MiniMaxComputer")
+
+        self.player2_dropdown = QComboBox()
+        self.player2_dropdown.addItem("Human")
+        self.player2_dropdown.addItem("RandomComputer")
+        self.player2_dropdown.addItem("MiniMaxComputer")
+
+        self.grid_layout.addWidget(QLabel("Player 1:"), 2, 0)
+        self.grid_layout.addWidget(self.player1_dropdown, 2, 1)
+        self.grid_layout.addWidget(QLabel("Player 2:"), 2, 2)
+        self.grid_layout.addWidget(self.player2_dropdown, 2, 3)
+
         self.start_button = QPushButton("Start game")
         self.start_button.clicked.connect(self.start_game)
-        self.grid_layout.addWidget(self.start_button, 2, 0, 1, 2)
+        self.grid_layout.addWidget(self.start_button, 3, 0, 1, 4)
+        
         
     def start_game(self):
         num_rows = self.num_rows_spinbox.value()
         num_cols = self.num_cols_spinbox.value()
-        self.connect4 = Connect4(num_rows, num_cols)
+        player1 = self.player1_dropdown.currentText()
+        player2 = self.player2_dropdown.currentText()
+        self.connect4 = Connect4(num_rows, num_cols, player1, player2)
         self.connect4.show()
         self.close()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    qdarktheme.setup_theme()
+    qdarktheme.setup_theme(theme="auto")
     connect4_setup = Connect4Setup()
     connect4_setup.show()
     sys.exit(app.exec())
