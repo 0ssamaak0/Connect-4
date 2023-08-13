@@ -3,6 +3,27 @@ import qdarktheme
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QGridLayout, QWidget, QLabel, QSpinBox, QMessageBox
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QPen
 from PyQt6.QtCore import Qt
+import random
+
+class Player:
+    def __init__(self, name, color):
+        self.name = name
+        self.color = color
+
+class Human(Player):
+    def __init__(self, name, color):
+        super().__init__(name, color)
+
+class RandomComputer(Player):
+    def __init__(self, name, color):
+        super().__init__(name, color)
+
+    def play(self, board):
+        available_cols = [col for col in range(len(board[0])) if board[0][col] == 0]
+        if available_cols:
+            return random.choice(available_cols)
+        else:
+            return None
 
 class Connect4(QMainWindow):
     def __init__(self, num_rows=6, num_cols=7):
@@ -16,7 +37,8 @@ class Connect4(QMainWindow):
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
-        self.current_player = 1
+        self.players = [Human("Player 1", "red"), RandomComputer("Computer", "green")]
+        self.current_player = self.players[0]
         self.create_board()
         self.create_turn_label()
         
@@ -43,12 +65,9 @@ class Connect4(QMainWindow):
         widget.setMinimumSize(cell_size * self.num_cols, cell_size * self.num_rows)
             
     def create_turn_label(self):
-        self.turn_label = QLabel(f"Player {self.current_player}'s turn")
+        self.turn_label = QLabel(f"{self.current_player.name}'s turn")
         self.turn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        if self.current_player == 1:
-            self.turn_label.setStyleSheet("color: red;")
-        else:
-            self.turn_label.setStyleSheet("color: green;")
+        self.turn_label.setStyleSheet(f"color: {self.current_player.color};")
         # remove the old label if it exists
         if self.grid_layout.itemAtPosition(self.num_rows+2, 0) is not None:
             self.grid_layout.itemAtPosition(self.num_rows+2, 0).widget().setParent(None)
@@ -62,17 +81,18 @@ class Connect4(QMainWindow):
             return
         self.board[row][col] = self.current_player
         label = self.grid_layout.itemAtPosition(row+2, col).widget()
-        if self.current_player == 1:
-            label.setStyleSheet("background-color: red; border: 1px solid black; border-radius: 20%;")
-        else:
-            label.setStyleSheet("background-color: green; border: 1px solid black; border-radius: 20%;")
+        label.setStyleSheet(f"background-color: {self.current_player.color}; border: 1px solid black; border-radius: 20%;")
         if self.check_win(row, col):
-            self.show_result_dialog(f"Player {self.current_player} won!")
+            self.show_result_dialog(f"{self.current_player.name} won!")
         elif self.check_tie():
             self.show_result_dialog("Tie game!")
         else:
-            self.current_player = 3 - self.current_player
+            self.current_player = self.players[1] if self.current_player == self.players[0] else self.players[0]
             self.create_turn_label()
+            if isinstance(self.current_player, RandomComputer):
+                col = self.current_player.play(self.board)
+                if col is not None:
+                    self.play(col)
             
     def check_win(self, row, col):
         player = self.board[row][col]
