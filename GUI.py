@@ -24,6 +24,13 @@ class RandomComputer(Player):
             return random.choice(available_cols)
         else:
             return None
+class MiniMaxComputer(Player):
+    def __init__(self, name, color):
+        super().__init__(name, color)
+
+    def play(self, board):
+        #TODO
+        pass
 
 class Connect4(QMainWindow):
     def __init__(self, num_rows=6, num_cols=7):
