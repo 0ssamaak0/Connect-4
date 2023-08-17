@@ -46,7 +46,7 @@ class Connect4(QMainWindow):
         self.num_cols = num_cols
         self.board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
         self.players_dict = {"Human": Human, "RandomComputer": RandomComputer, "MiniMaxComputer": MiniMaxComputer}
-        self.players = [self.players_dict[player1_type]("Player 1", "red"), self.players_dict[player2_type]("Player 2", "green")]
+        self.players = [self.players_dict[player1_type](1, "red"), self.players_dict[player2_type](-1, "green")]
         self.current_player = self.players[0]
         self.create_board()
         self.create_turn_label()
@@ -80,7 +80,7 @@ class Connect4(QMainWindow):
         widget.setMinimumSize(cell_size * self.num_cols, cell_size * self.num_rows)
             
     def create_turn_label(self):
-        self.turn_label = QLabel(f"{self.current_player.name}'s turn")
+        self.turn_label = QLabel(f"Player {self.current_player.name}'s turn")
         self.turn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.turn_label.setStyleSheet(f"color: {self.current_player.color};")
         # remove the old label if it exists
@@ -98,13 +98,13 @@ class Connect4(QMainWindow):
             row -= 1
         if row < 0:
             return
-        self.board[row][col] = self.current_player
+        self.board[row][col] = self.current_player.name
         label = self.grid_layout.itemAtPosition(row+2, col).widget()
         label.setStyleSheet(f"background-color: {self.current_player.color}; border: 1px solid black; border-radius: 20%;")
         QApplication.processEvents()
-        if self.check_win(row, col):
-            self.show_result_dialog(f"{self.current_player.name} won!")
-        elif self.check_tie():
+        if check_win(self.board, row, col, self.num_rows, self.num_cols):
+            self.show_result_dialog(f"Player {self.current_player.name} won!")
+        elif check_tie(self.num_cols, self.board):
             self.show_result_dialog("Tie game!")
         else:
             self.current_player = self.players[1] if self.current_player == self.players[0] else self.players[0]
@@ -114,59 +114,9 @@ class Connect4(QMainWindow):
             self.play()
         
             
-    def check_win(self, row, col):
-        player = self.board[row][col]
-        # check horizontal
-        count = 0
-        for c in range(self.num_cols):
-            if self.board[row][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check vertical
-        count = 0
-        for r in range(self.num_rows):
-            if self.board[r][col] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check diagonal
-        count = 0
-        for i in range(-3, 4):
-            r = row + i
-            c = col + i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
-                continue
-            if self.board[r][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check anti-diagonal
-        count = 0
-        for i in range(-3, 4):
-            r = row + i
-            c = col - i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
-                continue
-            if self.board[r][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        return False
+    
             
-    def check_tie(self):
-        for col in range(self.num_cols):
-            if self.board[0][col] == 0:
-                return False
-        return True
+
     
     def show_result_dialog(self, message):
         dialog = QMessageBox()
@@ -189,6 +139,59 @@ class Connect4(QMainWindow):
         else:
             self.close()
 
+def check_tie(num_cols, board):
+    for col in range(num_cols):
+        if board[0][col] == 0:
+            return False
+    return True
+
+def check_win(board, row, col, num_rows, num_cols):
+        player = board[row][col]
+        # check horizontal
+        count = 0
+        for c in range(num_cols):
+            if board[row][c] == player:
+                count += 1
+                if count == 4:
+                    return True
+            else:
+                count = 0
+        # check vertical
+        count = 0
+        for r in range(num_rows):
+            if board[r][col] == player:
+                count += 1
+                if count == 4:
+                    return True
+            else:
+                count = 0
+        # check diagonal
+        count = 0
+        for i in range(-3, 4):
+            r = row + i
+            c = col + i
+            if r < 0 or r >= num_rows or c < 0 or c >= num_cols:
+                continue
+            if board[r][c] == player:
+                count += 1
+                if count == 4:
+                    return True
+            else:
+                count = 0
+        # check anti-diagonal
+        count = 0
+        for i in range(-3, 4):
+            r = row + i
+            c = col - i
+            if r < 0 or r >= num_rows or c < 0 or c >= num_cols:
+                continue
+            if board[r][c] == player:
+                count += 1
+                if count == 4:
+                    return True
+            else:
+                count = 0
+        return False
 class Connect4Setup(QWidget):
     def __init__(self):
         super().__init__()
@@ -218,6 +221,8 @@ class Connect4Setup(QWidget):
         self.player2_dropdown.addItem("Human")
         self.player2_dropdown.addItem("RandomComputer")
         self.player2_dropdown.addItem("MiniMaxComputer")
+        # set default to MiniMaxComputer
+        self.player2_dropdown.setCurrentIndex(1)
 
         self.grid_layout.addWidget(QLabel("Player 1:"), 2, 0)
         self.grid_layout.addWidget(self.player1_dropdown, 2, 1)
