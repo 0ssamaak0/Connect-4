@@ -316,8 +316,8 @@ class Connect4(QMainWindow):
         player = self.board[row][col]
         # check horizontal
         count = 0
-        for c in range(self.num_cols):
-            if self.board[row][c] == player:
+        for c in range(num_cols):
+            if board[row][c] == player:
                 count += 1
                 if count == 4:
                     return True
@@ -325,8 +325,8 @@ class Connect4(QMainWindow):
                 count = 0
         # check vertical
         count = 0
-        for r in range(self.num_rows):
-            if self.board[r][col] == player:
+        for r in range(num_rows):
+            if board[r][col] == player:
                 count += 1
                 if count == 4:
                     return True
@@ -337,9 +337,9 @@ class Connect4(QMainWindow):
         for i in range(-3, 4):
             r = row + i
             c = col + i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
+            if r < 0 or r >= num_rows or c < 0 or c >= num_cols:
                 continue
-            if self.board[r][c] == player:
+            if board[r][c] == player:
                 count += 1
                 if count == 4:
                     return True
@@ -350,9 +350,9 @@ class Connect4(QMainWindow):
         for i in range(-3, 4):
             r = row + i
             c = col - i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
+            if r < 0 or r >= num_rows or c < 0 or c >= num_cols:
                 continue
-            if self.board[r][c] == player:
+            if board[r][c] == player:
                 count += 1
                 if count == 4:
                     return True
