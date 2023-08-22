@@ -3,9 +3,11 @@ import qdarktheme
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QGridLayout, QWidget, QLabel, QSpinBox, QMessageBox, QComboBox
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QBrush, QPen
 from PyQt6.QtCore import Qt
-import random, time
-
 import random, time, math, copy
+from checkers import check_win, check_tie
+
+
+
 
 class Player:
     def __init__(self, name, color):
@@ -29,7 +31,7 @@ class RandomComputer(Player):
             return None
         
 class MiniMaxComputer(Player):
-    def __init__(self, name, color, depth=10):
+    def __init__(self, name, color, depth=5):
         super().__init__(name, color)
         self.depth = depth
         self.opp_name = 2 if self.name == 1 else 1
@@ -53,14 +55,14 @@ class MiniMaxComputer(Player):
             # check if the move is valid
             if game.board[0][col] == 0:
                 # make a copy of the board
-                board_copy = copy.deepcopy(game.board)
+                self.board_copy = copy.deepcopy(game.board)
                 # simulate the move on the board copy
                 row = game.num_rows - 1
-                while row >= 0 and board_copy[row][col] != 0:
+                while row >= 0 and self.board_copy[row][col] != 0:
                     row -= 1
-                board_copy[row][col] = self.name
+                self.board_copy[row][col] = self.name
                 # evaluate the move using the minimax function with a given depth and alpha-beta pruning
-                score = self.minimax(board_copy, self.depth, -math.inf, math.inf, False, game, row, col)
+                score = self.minimax(self.board_copy, self.depth, -math.inf, math.inf, False, game, row, col)
                 # update the best score and best move if the score is higher than the current best score
                 if score > best_score:
                     best_score = score
@@ -83,10 +85,9 @@ class MiniMaxComputer(Player):
         - float: The score of the board state.
         """
         # check if the game is over or the depth is zero
-        print(f"depth = {depth}")
-        if game.check_win(row, col) or game.check_tie() or depth == 0:
+        if check_win(self.board_copy, row, col, game.num_rows, game.num_cols) or check_tie(self.board_copy, game.num_cols) or depth == 0:
             # return a heuristic score based on the board state
-            return self.evaluate(board, game)
+            return self.evaluate(self.board_copy, game)
         
         # check if the current player is maximizing
         if is_maximizing:
@@ -97,14 +98,14 @@ class MiniMaxComputer(Player):
                 # check if the move is valid
                 if board[0][col] == 0:
                     # make a copy of the board
-                    board_copy = copy.deepcopy(board)
+                    self.board_copy = copy.deepcopy(board)
                     # simulate the move on the board copy
                     row = game.num_rows - 1
-                    while row >= 0 and board_copy[row][col] != 0:
+                    while row >= 0 and self.board_copy[row][col] != 0:
                         row -= 1
-                    board_copy[row][col] = self.name
+                    self.board_copy[row][col] = self.name
                     # recursively evaluate the move using the minimax function with a reduced depth and alpha-beta pruning
-                    score = self.minimax(board_copy, depth-1, alpha, beta, False, game, row, col)
+                    score = self.minimax(self.board_copy, depth-1, alpha, beta, False, game, row, col)
                     # update the best score and alpha if the score is higher than the current best score
                     best_score = max(best_score, score)
                     alpha = max(alpha, best_score)
@@ -112,7 +113,6 @@ class MiniMaxComputer(Player):
                     if alpha >= beta:
                         break
             # return the best score
-            print(f"best_score = {best_score}")
             return best_score
         
         else: # if the current player is minimizing
@@ -123,14 +123,14 @@ class MiniMaxComputer(Player):
                 # check if the move is valid
                 if board[0][col] == 0:
                     # make a copy of the board
-                    board_copy = copy.deepcopy(board)
+                    self.board_copy = copy.deepcopy(board)
                     # simulate the move on the board copy
                     row = game.num_rows - 1
-                    while row >= 0 and board_copy[row][col] != 0:
+                    while row >= 0 and self.board_copy[row][col] != 0:
                         row -= 1
-                    board_copy[row][col] = self.opp_name
+                    self.board_copy[row][col] = self.opp_name
                     # recursively evaluate the move using the minimax function with a reduced depth and alpha-beta pruning
-                    score = self.minimax(board_copy, depth-1, alpha, beta, True, game, row, col)
+                    score = self.minimax(self.board_copy, depth-1, alpha, beta, True, game, row, col)
                     # update the best score and beta if the score is lower than the current best score
                     best_score = min(best_score, score)
                     beta = min(beta, best_score)
@@ -138,7 +138,6 @@ class MiniMaxComputer(Player):
                     if alpha >= beta:
                         break
             # return the best score
-            print(f"best_score = {best_score}")
             return best_score
 
     def evaluate(self, board, game):
@@ -189,7 +188,6 @@ class MiniMaxComputer(Player):
                         score -= 10
         
         # return the final score
-        print(f"best_score = {score}")
         return score
 class Connect4(QMainWindow):
     def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer"):
@@ -290,9 +288,9 @@ class Connect4(QMainWindow):
         label = self.grid_layout.itemAtPosition(row+2, col).widget()
         label.setStyleSheet(f"background-color: {self.current_player.color}; border: 1px solid black; border-radius: 20%;")
         QApplication.processEvents()
-        if self.check_win(row, col):
+        if check_win(self.board, row, col, self.num_rows, self.num_cols):
             self.show_result_dialog(f"Player {self.current_player.name} won!")
-        elif self.check_tie():
+        elif check_tie(self.board, self.num_cols):
             self.show_result_dialog("Tie game!")
         else:
             self.current_player = self.players[1] if self.current_player == self.players[0] else self.players[0]
@@ -300,78 +298,6 @@ class Connect4(QMainWindow):
         
         if not isinstance(self.current_player, Human):
             self.play()
-        
-            
-    def check_win(self, row, col):
-        """
-        Checks if the game has been won by the player who just made a move.
-
-        Args:
-        - row (int): The row in which the current player's piece was placed.
-        - col (int): The column in which the current player's piece was placed.
-
-        Returns:
-        - bool: True if the game has been won by the current player, False otherwise.
-        """
-        player = self.board[row][col]
-        # check horizontal
-        count = 0
-        for c in range(self.num_cols):
-            if self.board[row][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check vertical
-        count = 0
-        for r in range(self.num_rows):
-            if self.board[r][col] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check diagonal
-        count = 0
-        for i in range(-3, 4):
-            r = row + i
-            c = col + i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
-                continue
-            if self.board[r][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        # check anti-diagonal
-        count = 0
-        for i in range(-3, 4):
-            r = row + i
-            c = col - i
-            if r < 0 or r >= self.num_rows or c < 0 or c >= self.num_cols:
-                continue
-            if self.board[r][c] == player:
-                count += 1
-                if count == 4:
-                    return True
-            else:
-                count = 0
-        return False
-            
-    def check_tie(self):
-        """
-        Checks if the game has ended in a tie.
-
-        Returns:
-        - bool: True if the game has ended in a tie, False otherwise.
-        """
-        
-        for col in range(self.num_cols):
-            if self.board[0][col] == 0:
-                return False
-        return True
     
     def show_result_dialog(self, message):
         """
@@ -432,8 +358,8 @@ class Connect4Setup(QWidget):
 
         self.player1_dropdown = QComboBox()
         self.player1_dropdown.addItem("Human")
-        # self.player1_dropdown.addItem("RandomComputer")
-        # self.player1_dropdown.addItem("MiniMaxComputer")
+        self.player1_dropdown.addItem("RandomComputer")
+        self.player1_dropdown.addItem("MiniMaxComputer")
 
         self.player2_dropdown = QComboBox()
         self.player2_dropdown.addItem("Human")
