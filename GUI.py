@@ -147,50 +147,54 @@ class MiniMaxComputer(Player):
 
         Args:
         - board (list): The board state as a 2D list of integers.
+        - game (Connect4): The game object.
 
         Returns:
         - float: The heuristic score of the board state.
         """
-        # set the initial score to zero
-        score = 0
-        # loop through all possible directions (horizontal, vertical, diagonal, anti-diagonal)
-        for dr, dc in [(0, 1), (1, 0), (1, 1), (1, -1)]:
-            # loop through all possible starting positions
+        player_score = 0
+        opp_score = 0
+        
+        # Evaluate horizontally, vertically, diagonally, and anti-diagonally
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        for dr, dc in directions:
             for r in range(game.num_rows):
                 for c in range(game.num_cols):
-                    # count the number of pieces for each player in a window of size 4
-                    count = {self.name: 0, self.opp_name: 0, 0: 0}
+                    window = []
                     for i in range(4):
-                        nr = r + dr * i
-                        nc = c + dc * i
-                        # check if the position is valid
-                        if nr >= 0 and nr < game.num_rows and nc >= 0 and nc < game.num_cols:
-                            # update the count for the player at that position
-                            if board[nr][nc] in count:
-                                count[board[nr][nc]] += 1
-                    # update the score based on the count
-                    # if the window has 4 pieces for the current player, add a large positive value
-                    if count[self.name] == 4:
-                        score += 1000000
-                    # if the window has 3 pieces for the current player and one empty space, add a smaller positive value
-                    elif count[self.name] == 3 and count[0] == 1:
-                        score += 100
-                    # if the window has 2 pieces for the current player and two empty spaces, add an even smaller positive value
-                    elif count[self.name] == 2 and count[0] == 2:
-                        score += 10
-                    # if the window has 4 pieces for the opponent player, subtract a large negative value
-                    elif count[self.opp_name] == 4:
-                        score -= 1000000
-                    # if the window has 3 pieces for the opponent player and one empty space, subtract a smaller negative value
-                    elif count[self.opp_name] == 3 and count[0] == 1:
-                        score -= 100
-                    # if the window has 2 pieces for the opponent player and two empty spaces, subtract an even smaller negative value
-                    elif count[self.opp_name] == 2 and count[0] == 2:
-                        score -= 10
+                        nr = r + i * dr
+                        nc = c + i * dc
+                        if 0 <= nr < game.num_rows and 0 <= nc < game.num_cols:
+                            window.append(board[nr][nc])
+                    if self.name in window:
+                        player_count = window.count(self.name)
+                        opp_count = window.count(self.opp_name)
+                        if opp_count == 0:
+                            player_score += self.evaluate_window(player_count)
+                        if player_count == 0:
+                            opp_score += self.evaluate_window(opp_count)
+                            
+        total_score = player_score - opp_score
+        return total_score
+    def evaluate_window(self, count):
+        """
+        Assigns a score to a window of pieces.
+
+        Args:
+        - count (int): The count of pieces in the window.
+
+        Returns:
+        - float: The score assigned to the window.
+        """
+        if count == 4:
+            return 1000000
+        elif count == 3:
+            return 100
+        elif count == 2:
+            return 10
+        else:
+            return 0
         
-        # return the final score
-        print(f"best_score = {score}")
-        return score
 class Connect4(QMainWindow):
     def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer"):
         """
