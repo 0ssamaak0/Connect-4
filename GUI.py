@@ -35,6 +35,7 @@ class MiniMaxComputer(Player):
         super().__init__(name, color)
         self.depth = depth
         self.opp_name = 2 if self.name == 1 else 1
+        self.memo = {}
 
     def play(self, game):
         """
@@ -89,6 +90,11 @@ class MiniMaxComputer(Player):
             # return a heuristic score based on the board state
             return self.evaluate(self.board_copy, game)
         
+        # check if the board state has already been evaluated
+        board_str = str(board)
+        if board_str in self.memo:
+            return self.memo[board_str]
+        
         # check if the current player is maximizing
         if is_maximizing:
             # set the initial best score to negative infinity
@@ -112,6 +118,8 @@ class MiniMaxComputer(Player):
                     # break out of the loop if alpha is greater than or equal to beta (pruning)
                     if alpha >= beta:
                         break
+            # store the best score in the memoization table
+            self.memo[board_str] = best_score
             # return the best score
             return best_score
         
@@ -137,6 +145,8 @@ class MiniMaxComputer(Player):
                     # break out of the loop if alpha is greater than or equal to beta (pruning)
                     if alpha >= beta:
                         break
+            # store the best score in the memoization table
+            self.memo[board_str] = best_score
             # return the best score
             return best_score
 
