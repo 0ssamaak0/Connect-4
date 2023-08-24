@@ -7,8 +7,6 @@ import random, time, math, copy
 from checkers import check_win, check_tie
 
 
-
-
 class Player:
     def __init__(self, name, color):
         self.name = name
@@ -152,52 +150,141 @@ class MiniMaxComputer(Player):
 
     def evaluate(self, board, game):
         """
-        Evaluates a board state using a heuristic function.
+        Evaluate the current state of the board for the current player.
 
-        Args:
-        - board (list): The board state as a 2D list of integers.
+        Parameters:
+        board (list): The current state of the board.
+        game (Game): The current game object.
 
         Returns:
-        - float: The heuristic score of the board state.
+        int: The score of the current state of the board for the current player.
         """
+
         # set the initial score to zero
         score = 0
+
+        # define the weights for each heuristic
+        weights = {
+            "four_in_a_row": 10000000000,
+            "three_in_a_row": 100,
+            "two_in_a_row": 10,
+            "open_three": 100,
+            "open_two": 1,
+            "threat": 100,
+            "block": 100,
+            "central_column": 100
+        }
+
         # loop through all possible directions (horizontal, vertical, diagonal, anti-diagonal)
         for dr, dc in [(0, 1), (1, 0), (1, 1), (1, -1)]:
+
             # loop through all possible starting positions
             for r in range(game.num_rows):
                 for c in range(game.num_cols):
+
                     # count the number of pieces for each player in a window of size 4
                     count = {self.name: 0, self.opp_name: 0, 0: 0}
                     for i in range(4):
                         nr = r + dr * i
                         nc = c + dc * i
+
                         # check if the position is valid
                         if nr >= 0 and nr < game.num_rows and nc >= 0 and nc < game.num_cols:
+
                             # update the count for the player at that position
                             if board[nr][nc] in count:
                                 count[board[nr][nc]] += 1
+
                     # update the score based on the count
+
                     # if the window has 4 pieces for the current player, add a large positive value
                     if count[self.name] == 4:
-                        score += 1000000
+                        score += weights["four_in_a_row"]
+
                     # if the window has 3 pieces for the current player and one empty space, add a smaller positive value
                     elif count[self.name] == 3 and count[0] == 1:
-                        score += 100
+
+                        # if the window has 2 pieces and then an empty space and then another 1 piece, add a larger positive value
+                        if r > 0 and r < game.num_rows-1 and c > 0 and c < game.num_cols-2:
+                            if board[r-1][c+1] == self.name and board[r][c+1] == 0 and board[r+1][c+2] == self.name:
+                                score += weights["open_three"]
+
+                        # if the window has 2 pieces and then an empty space and then another 1 piece, add a larger positive value
+                        if r > 0 and r < game.num_rows-1 and c > 1 and c < game.num_cols:
+                            if board[r-1][c-1] == self.name and board[r][c-1] == 0 and board[r+1][c-2] == self.name:
+                                score += weights["open_three"]
+
+                        score += weights["three_in_a_row"]
+
                     # if the window has 2 pieces for the current player and two empty spaces, add an even smaller positive value
                     elif count[self.name] == 2 and count[0] == 2:
-                        score += 10
+
+                        # if the window has 1 piece and then two empty spaces and then another 1 piece, add a larger positive value
+                        if r > 0 and r < game.num_rows-2 and c > 0 and c < game.num_cols-3:
+                            if board[r-1][c+1] == self.name and board[r][c+1] == 0 and board[r+2][c+3] == self.name:
+                                score += weights["open_two"]
+
+                        # if the window has 1 piece and then two empty spaces and then another 1 piece, add a larger positive value
+                        if r > 0 and r < game.num_rows-2 and c > 2 and c < game.num_cols:
+                            if board[r-1][c-1] == self.name and board[r][c-1] == 0 and board[r+2][c-3] == self.name:
+                                score += weights["open_two"]
+
+                        score += weights["two_in_a_row"]
+
                     # if the window has 4 pieces for the opponent player, subtract a large negative value
                     elif count[self.opp_name] == 4:
-                        score -= 1000000
+                        score -= weights["four_in_a_row"]
+
                     # if the window has 3 pieces for the opponent player and one empty space, subtract a smaller negative value
                     elif count[self.opp_name] == 3 and count[0] == 1:
-                        score -= 100
+
+                        # if the window has 2 pieces and then an empty space and then another 1 piece, subtract a larger negative value
+                        if r > 0 and r < game.num_rows-1 and c > 0 and c < game.num_cols-2:
+                            if board[r-1][c+1] == self.opp_name and board[r][c+1] == 0 and board[r+1][c+2] == self.opp_name:
+                                score -= weights["open_three"]
+
+                        # if the window has 2 pieces and then an empty space and then another 1 piece, subtract a larger negative value
+                        if r > 0 and r < game.num_rows-1 and c > 1 and c < game.num_cols:
+                            if board[r-1][c-1] == self.opp_name and board[r][c-1] == 0 and board[r+1][c-2] == self.opp_name:
+                                score -= weights["open_three"]
+
+                        score -= weights["three_in_a_row"]
+
                     # if the window has 2 pieces for the opponent player and two empty spaces, subtract an even smaller negative value
                     elif count[self.opp_name] == 2 and count[0] == 2:
-                        score -= 10
-        
-        # return the final score
+
+                        # if the window has 1 piece and then two empty spaces and then another 1 piece, subtract a larger negative value
+                        if r > 0 and r < game.num_rows-2 and c > 0 and c < game.num_cols-3:
+                            if board[r-1][c+1] == self.opp_name and board[r][c+1] == 0 and board[r+2][c+3] == self.opp_name:
+                                score -= weights["open_two"]
+
+                        # if the window has 1 piece and then two empty spaces and then another 1 piece, subtract a larger negative value
+                        if r > 0 and r < game.num_rows-2 and c > 2 and c < game.num_cols:
+                            if board[r-1][c-1] == self.opp_name and board[r][c-1] == 0 and board[r+2][c-3] == self.opp_name:
+                                score -= weights["open_two"]
+
+                        score -= weights["two_in_a_row"]
+
+                    # check for threats (3 in a row with an empty space on either end)
+                    elif count[self.name] == 2 and count[0] == 2:
+                        if r > 0 and r < game.num_rows-1 and c > 0 and c < game.num_cols-1:
+                            if board[r-1][c-1] == 0 and board[r-1][c+1] == 0 and board[r+1][c-1] == self.name and board[r+1][c+1] == self.name:
+                                score += weights["threat"]
+                            if board[r-1][c-1] == self.name and board[r-1][c+1] == self.name and board[r+1][c-1] == 0 and board[r+1][c+1] == 0:
+                                score += weights["threat"]
+
+                    # check for blocks (3 in a row for the opponent with an empty space on either end)
+                    elif count[self.opp_name] == 2 and count[0] == 2:
+                        if r > 0 and r < game.num_rows-1 and c > 0 and c < game.num_cols-1:
+                            if board[r-1][c-1] == 0 and board[r-1][c+1] == 0 and board[r+1][c-1] == self.opp_name and board[r+1][c+1] == self.opp_name:
+                                score += weights["block"]
+                            if board[r-1][c-1] == self.opp_name and board[r-1][c+1] == self.opp_name and board[r+1][c-1] == 0 and board[r+1][c+1] == 0:
+                                score += weights["block"]
+
+                    # check for central columns (pieces in the middle columns are more valuable)
+                    if c == game.num_cols // 2:
+                        score += weights["central_column"]
+
         return score
 class Connect4(QMainWindow):
     def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer"):
