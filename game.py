@@ -8,17 +8,18 @@ from checkers import check_win, check_tie
 
 
 class Player:
-    def __init__(self, name, color):
+    def __init__(self, name, color, depth):
         self.name = name
         self.color = color
+        self.depth = depth
 
 class Human(Player):
-    def __init__(self, name, color):
-        super().__init__(name, color)
+    def __init__(self, name, color, depth):
+        super().__init__(name, color, depth)
 
 class RandomComputer(Player):
-    def __init__(self, name, color):
-        super().__init__(name, color)
+    def __init__(self, name, color, depth):
+        super().__init__(name, color, depth)
 
     def play(self, game):
         board = game.board
@@ -29,8 +30,8 @@ class RandomComputer(Player):
             return None
         
 class MiniMaxComputer(Player):
-    def __init__(self, name, color, depth=5):
-        super().__init__(name, color)
+    def __init__(self, name, color, depth):
+        super().__init__(name, color, depth)
         self.depth = depth
         self.opp_name = 2 if self.name == 1 else 1
         self.memo = {}
@@ -287,7 +288,7 @@ class MiniMaxComputer(Player):
 
         return score
 class Connect4(QMainWindow):
-    def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer"):
+    def __init__(self, num_rows=6, num_cols=7, player1_type = "Human", player2_type = "RandomComputer", depth=3):
         """
         Initializes the Connect4 game window with the specified number of rows and columns, and the types of players.
 
@@ -308,7 +309,7 @@ class Connect4(QMainWindow):
         self.num_cols = num_cols
         self.board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
         self.players_dict = {"Human": Human, "RandomComputer": RandomComputer, "MiniMaxComputer": MiniMaxComputer}
-        self.players = [self.players_dict[player1_type](1, "red"), self.players_dict[player2_type](2, "green")]
+        self.players = [self.players_dict[player1_type](1, "red", depth), self.players_dict[player2_type](2, "green", depth)]
         self.current_player = self.players[0]
         self.create_board()
         self.create_turn_label()
@@ -471,7 +472,15 @@ class Connect4Setup(QWidget):
 
         self.start_button = QPushButton("Start game")
         self.start_button.clicked.connect(self.start_game)
-        self.grid_layout.addWidget(self.start_button, 3, 0, 1, 4)
+        self.grid_layout.addWidget(self.start_button, 4, 0, 1, 4)
+
+        self.depth = QSpinBox()
+        self.depth.setMinimum(1)
+        self.depth.setMaximum(10000)
+        self.depth.setValue(3)
+
+        self.grid_layout.addWidget(QLabel("Depth:"), 3, 1)
+        self.grid_layout.addWidget(self.depth, 3, 2)
         
         
     def start_game(self):
@@ -479,7 +488,8 @@ class Connect4Setup(QWidget):
         num_cols = self.num_cols_spinbox.value()
         player1 = self.player1_dropdown.currentText()
         player2 = self.player2_dropdown.currentText()
-        self.connect4 = Connect4(num_rows, num_cols, player1, player2)
+        depth = self.depth.value()
+        self.connect4 = Connect4(num_rows, num_cols, player1, player2, depth)
         self.connect4.showMaximized()
         self.connect4.show()
         self.close()
