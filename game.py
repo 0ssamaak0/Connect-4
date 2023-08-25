@@ -172,6 +172,7 @@ class MiniMaxComputer(Player):
             "open_three": 100,
             "open_two": 1,
             "threat": 100,
+            "double_threat": 100000000,
             "block": 100,
             "central_column": 100
         }
@@ -273,6 +274,12 @@ class MiniMaxComputer(Player):
                                 score += weights["threat"]
                             if board[r-1][c-1] == self.name and board[r-1][c+1] == self.name and board[r+1][c-1] == 0 and board[r+1][c+1] == 0:
                                 score += weights["threat"]
+
+                    # check for double threats (3 in a row with empty spaces on both ends)
+                    elif count[self.name] == 1 and count[0] == 2:
+                        if r > 0 and r < game.num_rows-1 and c > 0 and c < game.num_cols-1:
+                            if board[r-1][c-1] == 0 and board[r-1][c+1] == 0 and board[r+1][c-1] == 0 and board[r+1][c+1] == 0:
+                                score += weights["double_threat"]
 
                     # check for blocks (3 in a row for the opponent with an empty space on either end)
                     elif count[self.opp_name] == 2 and count[0] == 2:
